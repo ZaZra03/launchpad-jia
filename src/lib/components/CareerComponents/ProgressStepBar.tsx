@@ -47,21 +47,32 @@ export default function ProgressStepBar({ steps, currentStep, onStepClick }: Pro
                     justifyContent: "center",
                     marginBottom: "12px",
                     transition: "all 0.3s ease",
-                    backgroundColor: "#FFFFFF",
+                    backgroundColor: isCompleted ? "#181D27" : "#FFFFFF",
                     cursor: isClickable ? "pointer" : "default",
                     flexShrink: 0,
                   }}
                   onClick={() => isClickable && onStepClick(step.number)}
                 >
-                  <div
-                    style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      backgroundColor: isCompleted || isCurrent ? "#181D27" : "#D1D5DB",
-                      transition: "all 0.3s ease",
-                    }}
-                  />
+                  {isCompleted ? (
+                    <i
+                      className="la la-check"
+                      style={{
+                        fontSize: "12px",
+                        color: "#FFFFFF",
+                        fontWeight: "bold",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        backgroundColor: isCurrent ? "#181D27" : "#D1D5DB",
+                        transition: "all 0.3s ease",
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* Step Label */}
