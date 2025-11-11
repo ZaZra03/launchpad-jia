@@ -3,6 +3,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
+const useGroq = process.env.USE_GROQ === "true";
+
+const client = new OpenAI({
+  apiKey: useGroq ? process.env.GROQ_API_KEY : process.env.OPENAI_API_KEY,
+  baseURL: useGroq ? "https://api.groq.com/openai/v1" : undefined,
+});
+
 export async function POST(req: NextRequest) {
   const { chunks } = await req.json();
   const corePrompt = `
@@ -49,21 +56,20 @@ export async function POST(req: NextRequest) {
       - Only return the JSON output.
       - DO NOT include \`\`\`json or \`\`\` around the response.
     `;
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  const completion = await openai.responses.create({
-    model: "o4-mini",
-    reasoning: { effort: "high" },
-    input: [
+  
+  const completion = await client.chat.completions.create({
+    model: useGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
+    messages: [
       {
         role: "user",
         content: corePrompt,
       },
     ],
+    temperature: 0.1,
+    max_tokens: 8000,
   });
 
   return NextResponse.json({
-    result: completion.output_text,
+    result: completion.choices[0]?.message?.content || "",
   });
 }

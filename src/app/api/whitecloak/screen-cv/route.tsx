@@ -4,6 +4,13 @@ import { NextResponse } from "next/server";
 import connectMongoDB from "@/lib/mongoDB/mongoDB";
 import OpenAI from "openai";
 
+const useGroq = process.env.USE_GROQ === "true";
+
+const client = new OpenAI({
+  apiKey: useGroq ? process.env.GROQ_API_KEY : process.env.OPENAI_API_KEY,
+  baseURL: useGroq ? "https://api.groq.com/openai/v1" : undefined,
+});
+
 export async function POST(request: Request) {
   const { interviewID, userEmail } = await request.json();
   const { db } = await connectMongoDB();
@@ -88,21 +95,19 @@ export async function POST(request: Request) {
       - DO NOT include \`\`\`json or \`\`\` around the response.
   `;
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  const completion = await openai.responses.create({
-    model: "o4-mini",
-    reasoning: { effort: "high" },
-    input: [
+  const completion = await client.chat.completions.create({
+    model: useGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
+    messages: [
       {
         role: "user",
         content: screeningPrompt,
       },
     ],
+    temperature: 0.1,
+    max_tokens: 8000,
   });
 
-  let result: any = completion.output_text;
+  let result: any = completion.choices[0]?.message?.content || "";
 
   try {
     result = result.replace("```json", "").replace("```", "");
