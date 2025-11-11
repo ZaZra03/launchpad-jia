@@ -318,40 +318,40 @@ export default function (props) {
       ) {
         categoryOrigin.questionCountToAsk = categoryOrigin.questions.length;
       }
-    }
-
-    setQuestions(updatedQuestions);
   }
 
-  async function fetchInstructionPrompt() {
-    const configData = await axios
-      .post("/api/fetch-global-settings", {
-        fields: { question_gen_prompt: 1 },
-      })
-      .then((res) => {
-        return res.data;
-      })
-      .catch((err) => {
-        console.log("[Question Generator Fetch Prompt Error]", err);
-      });
+  setQuestions(updatedQuestions);
+}
 
+async function fetchInstructionPrompt() {
+  const configData = await axios
+    .post("/api/fetch-global-settings", {
+      fields: { question_gen_prompt: 1 },
+    })
+    .then((res) => {
+      return res.data;
+    })
+    .catch((err) => {
+      console.log("[Question Generator Fetch Prompt Error]", err);
+      return null;
+    });
+
+  if (configData && configData.question_gen_prompt && configData.question_gen_prompt.prompt) {
     setQuestionGenPrompt(configData.question_gen_prompt.prompt);
   }
+}
 
-  useEffect(() => {
-    fetchInstructionPrompt();
-  }, []);
+useEffect(() => {
+  fetchInstructionPrompt();
+}, []);
 
   return (
     <div className="layered-card-outer">
         <div className="layered-card-middle">
           <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
               <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 32, height: 32, backgroundColor: "#181D27", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="la la-comment-alt" style={{ color: "#FFFFFF", fontSize: 20 }}></i>
-                </div>
-                <span style={{fontSize: 16, color: "#181D27", fontWeight: 700}}>
-                  Interview Questions 
+                <span style={{fontSize: 20, color: "#181D27", fontWeight: 700}}>
+                  2. AI Interview Questions 
                 </span>
                 <div style={{ borderRadius: "50%", width: 30, height: 22, border: "1px solid #D5D9EB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, backgroundColor: "#F8F9FC", color: "#181D27", fontWeight: 700 }}>
                   {questions.reduce((acc, group) => acc + group.questions.length, 0)}
