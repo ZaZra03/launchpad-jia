@@ -14,10 +14,9 @@ export async function POST(req: Request) {
 
     const { db } = await connectMongoDB();
 
-    // Try to convert orgID to ObjectId if possible, else use as string
-    let query;
+    let query: { _id: any; };
     try {
-      query = { _id: new ObjectId(orgID) };
+      query = { _id: new ObjectId(String(orgID)) };
     } catch (e) {
       query = { _id: orgID };
     }
@@ -46,7 +45,10 @@ export async function POST(req: Request) {
         }
     },
     {
-      $unwind: "$plan"
+      $unwind: {
+        path: "$plan",
+        preserveNullAndEmptyArrays: true
+      }
     },
     ]).toArray();
 
