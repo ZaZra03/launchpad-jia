@@ -36,11 +36,17 @@ export default function AuthGuard() {
 
       const orgIDparams = searchParams.get("orgID");
 
-      if (!orgIDparams && activeOrg) {
-        const params = new URLSearchParams(searchParams);
-        params.delete("orgID");
-        const existingParams = params.toString();
-        router.replace(`${pathname}?orgID=${activeOrg._id}${existingParams ? `&${existingParams}` : ""}`);
+      // If no orgID in URL, add it from activeOrg or first org in list
+      if (!orgIDparams) {
+        const orgToUse = activeOrg || orgList[0];
+        if (orgToUse) {
+          const params = new URLSearchParams(searchParams);
+          const existingParams = params.toString();
+          router.replace(`${pathname}?orgID=${orgToUse._id}${existingParams ? `&${existingParams}` : ""}`);
+          if (!activeOrg) {
+            setActiveOrg(orgToUse);
+          }
+        }
       } else if (orgIDparams) {
         const foundOrg = orgList.find((o: any) => o._id === orgIDparams);
         const superAdminResponse = await axios.post("/api/admin/check-super-admin", {
@@ -158,9 +164,8 @@ export default function AuthGuard() {
             setBlocked(false);
           }
           if (window.location.pathname.includes("dashboard")) {
-            if (orgID) {
-              fetchOrg();
-            }
+            // Always fetch org data for dashboard pages, don't wait for orgID
+            fetchOrg();
           }
         }
 
