@@ -3,9 +3,42 @@ import connectMongoDB from "@/lib/mongoDB/mongoDB";
 import { guid } from "@/lib/Utils";
 import { ObjectId } from "mongodb";
 
+// Sanitize string input to prevent XSS
+function sanitizeString(str: string): string {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;");
+}
+
+// Recursively sanitize objects and arrays
+function sanitizeInput(input: any): any {
+  if (typeof input === "string") {
+    return sanitizeString(input);
+  }
+  if (Array.isArray(input)) {
+    return input.map(sanitizeInput);
+  }
+  if (input && typeof input === "object") {
+    const sanitized: any = {};
+    for (const key in input) {
+      sanitized[key] = sanitizeInput(input[key]);
+    }
+    return sanitized;
+  }
+  return input;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    
+    // Sanitize all string inputs to prevent XSS
+    const sanitizedBody = sanitizeInput(body);
+    
     const {
       jobTitle,
       description,
@@ -29,7 +62,7 @@ export async function POST(request: Request) {
       aiInterviewSecretPrompt,
       preScreeningQuestions,
       teamMembers,
-    } = body;
+    } = sanitizedBody;
     
     // Validate required fields
     if (!jobTitle || !description || !questions || !workSetup) {
@@ -38,6 +71,37 @@ export async function POST(request: Request) {
           error:
             "Job title, description, questions and work setup are required",
         },
+        { status: 400 }
+      );
+    }
+    
+    // Additional validation for data types
+    if (typeof jobTitle !== "string" || jobTitle.length > 200) {
+      return NextResponse.json(
+        { error: "Invalid job title" },
+        { status: 400 }
+      );
+    }
+    
+    if (typeof description !== "string" || description.length > 10000) {
+      return NextResponse.json(
+        { error: "Invalid job description" },
+        { status: 400 }
+      );
+    }
+    
+    if (!Array.isArray(questions)) {
+      return NextResponse.json(
+        { error: "Invalid questions format" },
+        { status: 400 }
+      );
+    }
+    
+    // Validate status is from allowed values
+    const allowedStatuses = ["active", "draft", "closed"];
+    if (status && !allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid status value" },
         { status: 400 }
       );
     }
