@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Use Groq (free) or OpenAI based on environment variable
+const useGroq = process.env.USE_GROQ === "true";
+
+const client = new OpenAI({
+  apiKey: useGroq ? process.env.GROQ_API_KEY : process.env.OPENAI_API_KEY,
+  baseURL: useGroq ? "https://api.groq.com/openai/v1" : undefined,
 });
 
 export async function POST(request: Request) {
@@ -16,8 +20,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await client.chat.completions.create({
+      model: useGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -31,7 +35,7 @@ export async function POST(request: Request) {
         },
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: useGroq ? 8000 : 1000,
     });
 
     return NextResponse.json({
