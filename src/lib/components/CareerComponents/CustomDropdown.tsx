@@ -52,7 +52,7 @@ export default function CustomDropdown(props) {
                     display: "flex",
                     flexDirection: "row",
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     whiteSpace: "wrap",
                     textTransform: "capitalize",
                   }}
@@ -61,8 +61,21 @@ export default function CustomDropdown(props) {
                     setDropdownOpen(false);
                   }}
                 >
-                  <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "5px" }}>
-                  {setting.icon && <i className={setting.icon}></i>} {setting.name?.replace("_", " ")}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px", flex: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "5px" }}>
+                      {setting.icon && <i className={setting.icon}></i>} {setting.name?.replace("_", " ")}
+                    </div>
+                    {setting.description && (
+                      <span style={{ 
+                        fontSize: "11px", 
+                        color: "#6B7280", 
+                        fontWeight: 400,
+                        textTransform: "none",
+                        lineHeight: "1.4"
+                      }}>
+                        {setting.description}
+                      </span>
+                    )}
                   </div>
                   {setting.name === screeningSetting && (
                             <i
@@ -73,7 +86,9 @@ export default function CustomDropdown(props) {
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent",
                                     backgroundClip: "text",
-                                    color: "transparent"
+                                    color: "transparent",
+                                    flexShrink: 0,
+                                    marginLeft: "8px"
                                 }}
                             ></i>
                         )}
