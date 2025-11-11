@@ -12,6 +12,32 @@ import axios from "axios";
 import Markdown from "react-markdown";
 import { useEffect, useRef, useState } from "react";
 
+// Decode HTML entities back to original characters
+function decodeHtmlEntities(text: string): string {
+  if (typeof text !== "string") return text;
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
+// Recursively decode HTML entities in objects and arrays
+function decodeInput(input: any): any {
+  if (typeof input === "string") {
+    return decodeHtmlEntities(input);
+  }
+  if (Array.isArray(input)) {
+    return input.map(decodeInput);
+  }
+  if (input && typeof input === "object") {
+    const decoded: any = {};
+    for (const key in input) {
+      decoded[key] = decodeInput(input[key]);
+    }
+    return decoded;
+  }
+  return input;
+}
+
 export default function () {
   const fileInputRef = useRef(null);
   const { user, setModalType } = useAppContext();
@@ -187,9 +213,10 @@ export default function () {
           } else {
             setCurrentStep(step[0]);
             setInterview(result[0]);
-            // Load pre-screening questions from the career
+            // Load pre-screening questions from the career and decode HTML entities
             if (result[0].preScreeningQuestions) {
-              setPreScreeningQuestions(result[0].preScreeningQuestions);
+              const decodedQuestions = decodeInput(result[0].preScreeningQuestions);
+              setPreScreeningQuestions(decodedQuestions);
             }
             setLoading(false);
           }
