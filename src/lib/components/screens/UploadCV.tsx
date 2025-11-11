@@ -25,6 +25,8 @@ export default function () {
   const [interview, setInterview] = useState(null);
   const [screeningResult, setScreeningResult] = useState(null);
   const [userCV, setUserCV] = useState(null);
+  const [preScreeningQuestions, setPreScreeningQuestions] = useState([]);
+  const [preScreeningAnswers, setPreScreeningAnswers] = useState({});
   const cvSections = [
     "Introduction",
     "Current Position",
@@ -36,7 +38,7 @@ export default function () {
     "Certifications",
     "Awards",
   ];
-  const step = ["Submit CV", "CV Screening", "Review Next Steps"];
+  const step = ["Submit CV", "Pre-screening Questions", "Review Next Steps"];
   const stepStatus = ["Completed", "Pending", "In Progress"];
 
   function handleDragOver(e) {
@@ -185,6 +187,10 @@ export default function () {
           } else {
             setCurrentStep(step[0]);
             setInterview(result[0]);
+            // Load pre-screening questions from the career
+            if (result[0].preScreeningQuestions) {
+              setPreScreeningQuestions(result[0].preScreeningQuestions);
+            }
             setLoading(false);
           }
         }
@@ -228,8 +234,6 @@ export default function () {
       }
     }
 
-    setCurrentStep(step[1]);
-
     if (hasChanges) {
       const formattedUserCV = cvSections.map((section) => ({
         name: section,
@@ -263,15 +267,43 @@ export default function () {
             "userCV",
             JSON.stringify({ ...data, ...data.cvData })
           );
+          // Move to pre-screening questions if they exist
+          if (preScreeningQuestions && preScreeningQuestions.length > 0) {
+            setCurrentStep(step[1]);
+          } else {
+            // Skip to CV screening if no pre-screening questions
+            handlePreScreeningSubmit();
+          }
         })
         .catch((err) => {
           alert("Error saving CV. Please try again.");
-          setCurrentStep(step[0]);
           console.log(err);
         });
+    } else {
+      // Move to pre-screening questions if they exist
+      if (preScreeningQuestions && preScreeningQuestions.length > 0) {
+        setCurrentStep(step[1]);
+      } else {
+        // Skip to CV screening if no pre-screening questions
+        handlePreScreeningSubmit();
+      }
     }
 
-    setHasChanges(true);
+    setHasChanges(false);
+  }
+
+  function handlePreScreeningSubmit() {
+    // Validate all required questions are answered
+    const unansweredQuestions = preScreeningQuestions.filter(
+      (q) => !preScreeningAnswers[q.id]
+    );
+
+    if (unansweredQuestions.length > 0 && preScreeningQuestions.length > 0) {
+      alert("Please answer all pre-screening questions.");
+      return false;
+    }
+
+    setCurrentStep(step[2]);
 
     axios({
       url: "/api/whitecloak/screen-cv",
@@ -279,6 +311,7 @@ export default function () {
       data: {
         interviewID: interview.interviewID,
         userEmail: user.email,
+        preScreeningAnswers: preScreeningAnswers,
       },
     })
       .then((res) => {
@@ -286,19 +319,15 @@ export default function () {
 
         if (result.error) {
           alert(result.message);
-          setCurrentStep(step[0]);
+          setCurrentStep(step[1]);
         } else {
-          setCurrentStep(step[2]);
           setScreeningResult(result);
         }
       })
       .catch((err) => {
-        alert("Error screening CV. Please try again.");
-        setCurrentStep(step[0]);
+        alert("Error processing application. Please try again.");
+        setCurrentStep(step[1]);
         console.log(err);
-      })
-      .finally(() => {
-        setHasChanges(false);
       });
   }
 
@@ -602,22 +631,112 @@ export default function () {
                       </div>
                     </div>
                   ))}
-                  <button onClick={handleCVScreen}>Submit CV</button>
+                  <button onClick={handleCVScreen}>Continue</button>
                 </div>
               )}
             </>
           )}
 
           {currentStep == step[1] && (
-            <div className={styles.cvScreeningContainer}>
-              <img alt="" src={assetConstants.loading} />
-              <span className={styles.title}>Sit tight!</span>
-              <span className={styles.description}>
-                Our smart reviewer is checking your qualifications.
-              </span>
-              <span className={styles.description}>
-                We'll let you know what's next in just a moment.
-              </span>
+            <div className={styles.cvDetailsContainer}>
+              <div className={styles.gradient}>
+                <div className={styles.cvDetailsCard}>
+                  <span className={styles.sectionTitle}>
+                    <img alt="" src={assetConstants.account} />
+                    Pre-screening Questions
+                  </span>
+                  <div className={styles.detailsContainer}>
+                    <span className={styles.fileTitle}>
+                      Please answer the following questions to proceed with your application.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {preScreeningQuestions.map((question, index) => (
+                <div key={question.id} className={styles.gradient}>
+                  <div className={styles.cvDetailsCard}>
+                    <span className={styles.sectionTitle}>
+                      {index + 1}. {question.question}
+                    </span>
+                    <div className={styles.detailsContainer}>
+                      {question.type === "Dropdown" && question.config?.options ? (
+                        <select
+                          value={preScreeningAnswers[question.id] || ""}
+                          onChange={(e) =>
+                            setPreScreeningAnswers({
+                              ...preScreeningAnswers,
+                              [question.id]: e.target.value,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            padding: "12px",
+                            fontSize: "16px",
+                            borderRadius: "8px",
+                            border: "1px solid #E5E7EB",
+                          }}
+                        >
+                          <option value="">Select an option</option>
+                          {question.config.options.map((option, idx) => (
+                            <option key={idx} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : question.type === "Range" && question.config?.min && question.config?.max ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                          <span style={{ fontSize: "14px", color: "#6B7280" }}>
+                            Expected range: PHP {question.config.min} - PHP {question.config.max}
+                          </span>
+                          <input
+                            type="number"
+                            placeholder="Enter your expected salary"
+                            value={preScreeningAnswers[question.id] || ""}
+                            onChange={(e) =>
+                              setPreScreeningAnswers({
+                                ...preScreeningAnswers,
+                                [question.id]: e.target.value,
+                              })
+                            }
+                            style={{
+                              width: "100%",
+                              padding: "12px",
+                              fontSize: "16px",
+                              borderRadius: "8px",
+                              border: "1px solid #E5E7EB",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <textarea
+                          placeholder="Type your answer here..."
+                          value={preScreeningAnswers[question.id] || ""}
+                          onChange={(e) =>
+                            setPreScreeningAnswers({
+                              ...preScreeningAnswers,
+                              [question.id]: e.target.value,
+                            })
+                          }
+                          style={{
+                            width: "100%",
+                            minHeight: "100px",
+                            padding: "12px",
+                            fontSize: "16px",
+                            borderRadius: "8px",
+                            border: "1px solid #E5E7EB",
+                            resize: "vertical",
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <button onClick={handlePreScreeningSubmit}>
+                Continue
+              </button>
             </div>
           )}
 
