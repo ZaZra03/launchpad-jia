@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-// Use Groq (free) or OpenAI based on environment variable
 const useGroq = process.env.USE_GROQ === "true";
 
 const client = new OpenAI({
